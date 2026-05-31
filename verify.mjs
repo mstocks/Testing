@@ -126,6 +126,31 @@ await page.waitForFunction(
 );
 pass("Not-found path shows a friendly message");
 
+// 5. Full-screen scanning layout (toggle the class the app applies while scanning).
+const fsState = await page.evaluate(() => {
+  document.body.classList.add("scanning");
+  const w = document.querySelector(".video-wrap");
+  const cs = getComputedStyle(w);
+  const r = w.getBoundingClientRect();
+  const state = {
+    position: cs.position,
+    fills:
+      Math.round(r.width) === window.innerWidth &&
+      Math.round(r.height) === window.innerHeight,
+    manualHidden:
+      getComputedStyle(document.querySelector(".manual")).display === "none",
+  };
+  document.body.classList.remove("scanning");
+  return state;
+});
+fsState.position === "fixed"
+  ? pass("Scanning view is fixed / full-screen")
+  : fail("video-wrap not fixed: " + fsState.position);
+fsState.fills ? pass("Video fills the viewport") : fail("Video does not fill viewport");
+fsState.manualHidden
+  ? pass("Page chrome hidden while scanning")
+  : fail("Manual entry not hidden while scanning");
+
 pageErrors.length === 0
   ? pass("No uncaught page errors")
   : fail("Page errors: " + pageErrors.join("; "));

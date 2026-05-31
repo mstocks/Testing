@@ -60,6 +60,16 @@
 
   /* ---------- Camera scanning ---------- */
 
+  // Switch the page into the full-screen scanning state.
+  function enterScanningUI() {
+    scanning = true;
+    lastCode = null;
+    startBtn.hidden = true;
+    stopBtn.hidden = false;
+    document.body.classList.add("scanning");
+    setStatus("Point the camera at a barcode…");
+  }
+
   async function startCamera() {
     resultEl.hidden = true;
 
@@ -105,11 +115,7 @@
     video.srcObject = stream;
     await video.play();
 
-    scanning = true;
-    lastCode = null;
-    startBtn.hidden = true;
-    stopBtn.hidden = false;
-    setStatus("Point the camera at a barcode…");
+    enterScanningUI();
     nativeScanLoop();
   }
 
@@ -137,11 +143,7 @@
       return;
     }
 
-    scanning = true;
-    lastCode = null;
-    startBtn.hidden = true;
-    stopBtn.hidden = false;
-    setStatus("Point the camera at a barcode…");
+    enterScanningUI();
 
     try {
       await zxingReader.decodeFromConstraints(
@@ -193,6 +195,7 @@
     detector = null;
     startBtn.hidden = false;
     stopBtn.hidden = true;
+    document.body.classList.remove("scanning");
   }
 
   /* ---------- Product lookup ---------- */

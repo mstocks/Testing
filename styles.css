@@ -248,3 +248,68 @@ body {
 .grade-d { background: #f97316; color: #fff; }
 .grade-e { background: #ef4444; color: #fff; }
 .grade-unknown { background: var(--surface-2); color: var(--text); }
+
+/* ---------- Full-screen scanning state ---------- */
+body.scanning {
+  overflow: hidden;
+}
+
+/* Video fills the whole viewport. */
+body.scanning .video-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* avoids the iOS browser-chrome gap */
+  aspect-ratio: auto;
+  border-radius: 0;
+  background: #000;
+}
+
+body.scanning #video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Larger aiming box on the full-screen view. */
+body.scanning .reticle {
+  inset: 30% 8%;
+}
+
+/* Scanning hint floats at the top, over the video. */
+body.scanning .status {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  padding: 0 16px;
+}
+
+/* Stop button floats at the bottom, over the video. */
+body.scanning .scanner-controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  z-index: 1001;
+  justify-content: center;
+  margin: 0;
+  padding: 0 24px;
+}
+
+body.scanning .scanner-controls .btn {
+  flex: 0 1 320px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Hide the rest of the page while scanning full screen. */
+body.scanning .app-header,
+body.scanning .manual,
+body.scanning .result {
+  display: none;
+}
