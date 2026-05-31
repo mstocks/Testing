@@ -16,8 +16,9 @@
   var statusEl = document.getElementById("status");
   var resultEl = document.getElementById("result");
 
-  var stream = null;
-  var detector = null;
+  var stream = null; // stream we manage in the native path
+  var detector = null; // native BarcodeDetector
+  var zxingReader = null; // ZXing reader (fallback path)
   var scanning = false;
   var rafId = null;
   var lastCode = null;
@@ -36,11 +37,28 @@
       .replace(/'/g, "&#39;");
   }
 
-  /* ---------- Camera scanning ---------- */
+  /* ---------- Capability checks ---------- */
 
   function supportsDetector() {
     return "BarcodeDetector" in window;
   }
+
+  function supportsZxing() {
+    return !!(window.ZXing && window.ZXing.BrowserMultiFormatReader);
+  }
+
+  /* ---------- Shared handlers ---------- */
+
+  // Called by either scanning engine when a barcode is read.
+  function onDetected(value) {
+    if (!value || !scanning || value === lastCode) return;
+    lastCode = value;
+    if (navigator.vibrate) navigator.vibrate(120);
+    stopCamera();
+    lookup(value);
+  }
+
+  /* ---------- Camera scanning ---------- */
 
   async function startCamera() {
     resultEl.hidden = true;
@@ -49,14 +67,22 @@
       setStatus("Camera not available. Enter the barcode manually below.", true);
       return;
     }
-    if (!supportsDetector()) {
+
+    // Prefer the fast native API; fall back to ZXing (needed for iOS Safari).
+    if (supportsDetector()) {
+      await startNativeScan();
+    } else if (supportsZxing()) {
+      await startZxingScan();
+    } else {
       setStatus(
         "Live scanning isn't supported in this browser. Enter the barcode manually below.",
         true
       );
-      return;
     }
+  }
 
+  // Native BarcodeDetector path (Chrome / Edge / Android).
+  async function startNativeScan() {
     try {
       detector = new window.BarcodeDetector({
         formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
@@ -84,14 +110,68 @@
     startBtn.hidden = true;
     stopBtn.hidden = false;
     setStatus("Point the camera at a barcode…");
-    scanLoop();
+    nativeScanLoop();
+  }
+
+  async function nativeScanLoop() {
+    if (!scanning) return;
+    try {
+      var codes = await detector.detect(video);
+      if (codes && codes.length) {
+        onDetected(codes[0].rawValue);
+        if (!scanning) return; // onDetected stopped us on a hit
+      }
+    } catch (err) {
+      /* transient detection errors are ignored; keep scanning */
+    }
+    rafId = requestAnimationFrame(nativeScanLoop);
+  }
+
+  // ZXing fallback path (iOS Safari and other browsers without BarcodeDetector).
+  // ZXing manages getUserMedia and the video element itself.
+  async function startZxingScan() {
+    try {
+      zxingReader = new window.ZXing.BrowserMultiFormatReader();
+    } catch (err) {
+      setStatus("Could not start the scanner. Use manual entry.", true);
+      return;
+    }
+
+    scanning = true;
+    lastCode = null;
+    startBtn.hidden = true;
+    stopBtn.hidden = false;
+    setStatus("Point the camera at a barcode…");
+
+    try {
+      await zxingReader.decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } }, audio: false },
+        video,
+        function (result, err) {
+          if (result) onDetected(result.getText());
+          // NotFoundException is emitted continuously while searching — ignore it.
+        }
+      );
+    } catch (err) {
+      setStatus("Camera access was denied. Enter the barcode manually below.", true);
+      stopCamera();
+    }
   }
 
   function stopCamera() {
     scanning = false;
+
     if (rafId) {
       cancelAnimationFrame(rafId);
       rafId = null;
+    }
+    if (zxingReader) {
+      try {
+        zxingReader.reset(); // stops ZXing's camera stream
+      } catch (err) {
+        /* ignore */
+      }
+      zxingReader = null;
     }
     if (stream) {
       stream.getTracks().forEach(function (t) {
@@ -99,29 +179,20 @@
       });
       stream = null;
     }
+    if (video.srcObject) {
+      try {
+        video.srcObject.getTracks().forEach(function (t) {
+          t.stop();
+        });
+      } catch (err) {
+        /* ignore */
+      }
+    }
     video.srcObject = null;
+
+    detector = null;
     startBtn.hidden = false;
     stopBtn.hidden = true;
-  }
-
-  async function scanLoop() {
-    if (!scanning) return;
-    try {
-      var codes = await detector.detect(video);
-      if (codes && codes.length) {
-        var value = codes[0].rawValue;
-        if (value && value !== lastCode) {
-          lastCode = value;
-          if (navigator.vibrate) navigator.vibrate(120);
-          stopCamera();
-          lookup(value);
-          return;
-        }
-      }
-    } catch (err) {
-      /* transient detection errors are ignored; keep scanning */
-    }
-    rafId = requestAnimationFrame(scanLoop);
   }
 
   /* ---------- Product lookup ---------- */

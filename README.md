@@ -39,6 +39,12 @@ tap **Look up**.
 
 ## Browser support
 
-Live scanning relies on the `BarcodeDetector` API (Chrome/Edge/Android, and
-Safari behind a flag). On unsupported browsers the app automatically falls back
-to manual entry.
+Live scanning uses the native [`BarcodeDetector`](https://developer.mozilla.org/docs/Web/API/BarcodeDetector)
+API where available (Chrome/Edge/Android). On browsers without it — notably
+**iOS Safari** — the app falls back to the [ZXing](https://github.com/zxing-js/library)
+JavaScript decoder (loaded from a CDN) so camera scanning still works. If neither
+is available, manual entry is always there.
+
+> **iPhone note:** the page must be served over HTTPS (e.g. GitHub Pages) and you
+> must tap **Start camera** to grant camera permission — iOS only allows camera
+> access from a user gesture on a secure origin.
