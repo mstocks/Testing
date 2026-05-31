@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>UPC Scanner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>UPC Scanner</h1>
+    <p class="subtitle">Scan a barcode to look up product info</p>
+  </header>
+
+  <main class="app-main">
+    <!-- Scanner -->
+    <section id="scanner" class="scanner">
+      <div class="video-wrap">
+        <video id="video" playsinline muted></video>
+        <div class="reticle" aria-hidden="true"></div>
+      </div>
+      <div class="scanner-controls">
+        <button id="startBtn" class="btn btn-primary" type="button">Start camera</button>
+        <button id="stopBtn" class="btn btn-secondary" type="button" hidden>Stop camera</button>
+      </div>
+    </section>
+
+    <!-- Manual entry (fallback) -->
+    <section class="manual">
+      <form id="manualForm" class="manual-form" autocomplete="off">
+        <label for="manualInput" class="sr-only">Enter barcode manually</label>
+        <input
+          id="manualInput"
+          name="barcode"
+          class="manual-input"
+          type="text"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          placeholder="Enter barcode number"
+        />
+        <button class="btn btn-primary" type="submit">Look up</button>
+      </form>
+    </section>
+
+    <!-- Status / messages -->
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <!-- Result -->
+    <section id="result" class="result" hidden></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
